@@ -2,7 +2,101 @@ import sys
 import pygame
 import util
 
+class InputBox():
+    activeColor = (250, 250, 250)
+    passiveColor = (20, 20, 20)
+    errorColor = (255, 20, 20)
+    def __init__(self, x, y, width, height, text = ''):
+        self.rect = pygame.Rect(x, y, width ,height)
+        self.text = text
+        self.color = self.passiveColor
+        self.font = pygame.font.Font(pygame.font.match_font('trebuchetms'), 20)
+        self.txt_surface = self.font.render(text, True, self.color)
+        self.active = False
+
+    def typing(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.active = not self.active
+            else:
+                self.active = False
+            self.color = self.activeColor if self.active else self.passiveColor
+        if event.type == pygame.KEYDOWN:
+            if self.active:
+                if event.key == pygame.K_RETURN:
+                    self.text = ''
+                elif event.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                else:
+                    self.text += event.unicode
+                self.txt_surface = self.font.render(self.text, True, self.color)
+
+    def update(self):
+        width = max(200, self.txt_surface.get_width()+10)
+        self.rect.width = width
+
+    def draw(self, screen):
+        screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+        pygame.draw.rect(screen, self.color, self.rect, 2)
+
+    def error(self):
+        self.color = self.errorColor
+
+
+class TruthTable():
+    x = 100
+    y = 20
+    def __init__(self):
+        self.positon = (0,0)
+        self.input = []
+        self.cols = 1
+        self.font = pygame.font.Font(pygame.font.match_font('trebuchetms'), 40)
+        list = []
+        for i in range(16):
+            self.y += 30
+            list.append(InputBox(self.x, self.y, 30, 30))
+        self.input.append(list)
+        self.y = 50
+
+    def addcol(self):
+        list = []
+        self.cols += 1
+        self.x += 30
+        for i in range(16):
+            list.append(InputBox(self.x, self.y, 30, 30))
+            self.y += 30
+        self.y = 50
+        self.input.append(list)
+
+    def draw(self, screen):
+        function_name = 65
+        pygame.draw.line(screen, (250, 250, 250), (100, 50), (30 + self.x, 50), 3)
+        pygame.draw.line(screen, (250, 250, 250), (100, 50), (100, 50 + 30 * 16), 3)
+        for i in range(self.cols):
+
+            screen.blit(self.font.render(chr(function_name), 1, (250,250,250)), (100 + 30 * i, 10))
+            function_name += 1
+        for input in self.input:
+            for inp in input:
+                inp.draw(screen)
+
+    def typing(self, event):
+        for input in self.input:
+            for inp in input:
+                inp.typing(event)
+
+    def read(self):
+        list = []
+        for input in self.input:
+            indiv_list = []
+            for inp in input:
+                indiv_list.append(int(inp.text))
+            list.append(indiv_list)
+        return list
+
+
 class K_MAP(object):
+    # Karnaugh Map
     def __init__(self, truthCol, funcName, Pos):
         self.cols = [truthCol[0:4], truthCol[4:8], truthCol[12:16], truthCol[8:12]]
         self.__func = funcName
@@ -56,7 +150,9 @@ class K_MAP(object):
     def K_MAPget(self, x, y):
         return self.cols[x][y]
 
+
 class Encapsulate(object):
+    # Object to draw around selected positions
     def __init__(self, screen, K_MAP, col, row, line = 2):
         self.K_MAP = K_MAP
         self.row = row
@@ -93,6 +189,7 @@ class Encapsulate(object):
                 besideSet.add("left")
         return (besideSet)
 
+
     def EncapDraw(self, Encapsulate):
         drawingSet= {"up", "down", "left", "right"}
         encaplist = []
@@ -128,6 +225,7 @@ class Encapsulate(object):
 
 
 class Term(object):
+    # Contain several encapsuals to create terms
     def __init__(self, color, EncapList):
         self.color = color
         self.term = EncapList
@@ -139,9 +237,8 @@ class Term(object):
             Encapsual.EncapDraw([i for i in self.term if Encapsual is not i])
 
 
-
-
 class One(object):
+    # Used to create the ones level order tree
     def __init__(self, pos):
         self.pos = pos
         self.down = None

@@ -1,16 +1,11 @@
 import K_Map
 
 
-def mixColor(colors):
-    outColor = [0,0,0]
-    for i in range(3):
-        for j in range(len(colors)):
-            outColor[i] += colors[j][i]
-        outColor[i] = outColor[i]//len(colors)
-    return outColor
-
-
 def screenDim(KMAPs):
+    """ screenDim(KMAPs)
+    Args - KMAPs : list of KMAPs
+    Returns - the screen dimensions for rendering (x, y)
+    """
     y = (len(KMAPs)//5 +1) * 350
     if len(KMAPs) > 4:
         x = 4 * 350
@@ -18,7 +13,12 @@ def screenDim(KMAPs):
         x = len(KMAPs) * 350
     return x, y
 
+
 def makeKMAP(truthTables):
+    """ makeKMAP(truthTables)
+    Args - truthTables : truthtable columns in list form
+    Returns - KMAPs : list of KMAP objects
+    """
     x = 0
     y = 0
     funcName = 65
@@ -34,44 +34,41 @@ def makeKMAP(truthTables):
             x = 0
     return KMAPs
 
-def solveKMAP(KMAP):
+
+def findOnes(KMAP):
+    """ solveKMAP(KMAP)
+    Args - KMAP: the KMAP class
+    Returns - List of the position of all ones (row, col)
+    """
+    oneslist = []
     cols = KMAP.cols
-    somethinglist = []
     for row in range(4):
         for col in range(4):
-            if cols[col][row] == 1:
-                refCol = col
-                refRow = row
-                somethinglist.append(SideChecker(cols, refCol, refRow, {(refCol, refRow)}))
-    for term in somethinglist:
-        somethinglist[0] = somethinglist[0].union(term)
-    # print( somethinglist[0])
-    return somethinglist[0]
+            if cols[row][col] == 1:
+                oneslist.append((row, col))
+    return oneslist
 
-def SideChecker(cols, x, y, visited):
-    if (x % 4, (y-1) % 4) not in visited and cols[x % 4][(y-1) % 4] == 1:
-        visited.add((x %4, (y-1) %4))
-        visited.union(SideChecker(cols, x % 4, (y-1 % 4), visited))
-    if (x % 4, (y+1) % 4) not in visited and cols[x % 4][(y+1) % 4] == 1:
-        visited.add((x %4, (y+1) %4))
-        visited.union(SideChecker(cols, x % 4, (y+1 % 4), visited))
-    if ((x+1) % 4, y % 4) not in visited and cols[(x+1) % 4][y % 4] == 1:
-        visited.add(((x+1) %4, y %4))
-        visited.union(SideChecker(cols, (x+1) % 4, (y % 4), visited))
-    if ((x-1) % 4, y % 4) not in visited and cols[(x+1) % 4][y % 4] == 1:
-        visited.add(((x+1) %4, y %4))
-        visited.union(SideChecker(cols, (x+1) % 4, (y % 4), visited))
-    return visited
 
 def makeOnesTree(transOnes):
+    """ makeOnesTree(transOnes)
+    Args - the ones positions
+    Returns - the tree
+    """
     trees = []
     for position in transOnes:
         tree = K_Map.One(position)
-        trees.append(recursiveSoln(position, transOnes, tree, (position, )))
+        trees.append(recursiveSoln(position, transOnes, tree, (position, ))) # tuple, so that each branch has it's unique visited
     return trees
 
 
 def recursiveSoln(position, nextposition, starting, visited):
+    """ recursiveSoln(position, nextpostion, starting, visited)
+    Args: - position: current position (row, col)
+            nextpostion: the next position (row, col)
+            starting: Ones Tree
+            visited: tuple of visited ones
+    Returns:
+    """
     pos = ((position[0] - 1)%4, position[1])
     if pos in nextposition and pos not in visited:
 
@@ -104,6 +101,9 @@ def recursiveSoln(position, nextposition, starting, visited):
     return starting
 
 def levelOrder(tree, possible, path):
+    """ levelOrder(tree, possible, path):
+    Traverses the tree by level order
+    """
     levels = [1,2,4,8,16]
     if tree.down is not None:
         levelOrder(tree.down, possible, path + ((tree.down.pos , )))
@@ -118,6 +118,10 @@ def levelOrder(tree, possible, path):
         possible.append(path)
 
 def ispossible(possibility):
+    """ ispossible(possibility)
+    Args - possibility : a single term
+    Returns - possibility : determines if the term is possible
+    """
     minX = 3
     maxX = 0
     minY = 3
@@ -139,7 +143,6 @@ def ispossible(possibility):
             wraparoundY = False
     X = abs(minX - maxX) + 1
     Y = abs(minY - maxY) + 1
-    # print(wraparoundX, wraparoundY, X, Y)
     if wraparoundX is True and wraparoundY is False and X % 3 != 0 and Y % 3 != 0:
         for y in range(Y):
             if (minX, minY+y) not in possibility:
@@ -162,9 +165,13 @@ def ispossible(possibility):
 
 
 def minimize(ones, possibleTerms):
+    """ minimize(ones, possibleTerms)
+    Args - ones : posiition of ones
+           possibleTerms : list of all possible terms
+    Returns - minimizedlist : Gives the solution terms
+    """
     minimizedlist = []
     for length in [16, 8, 4, 2, 1]:
-        print(length)
         for term in possibleTerms:
             if term is None:
                 continue
@@ -178,7 +185,6 @@ def minimize(ones, possibleTerms):
                 for position in term:
                     if position in ones:
                         ones.remove(position)
-                        print(ones)
             # If some ones left over, find the biggest prime implicant until solved
             minTerm = False
             for position in term:
@@ -190,11 +196,14 @@ def minimize(ones, possibleTerms):
                     if position in ones:
                         ones.remove(position)
 
-
-
     return minimizedlist
 
+
 def overlap(minimizedOnes):
+    """ overlap(minimizedOnes)
+    Args - minimizedOnes : The solution to the Karnaugh map
+    Returns - overlappinglist : List of the coords that overlap (row, col)
+    """
     overlappintlist = []
     checkingList = [position for term in minimizedOnes for position in term]
     for position in checkingList:
@@ -204,7 +213,12 @@ def overlap(minimizedOnes):
 
     return overlappintlist
 
+
 def createEquations(minimizedOnes):
+    """ createEquations(minimizedOnes)
+    Args - minimizedOnes: The solution to the Karnaugh Map
+    Returns - equations: a tuple of equations, the equations are a string
+    """
     equations = []
 
     for term in minimizedOnes:
@@ -217,8 +231,6 @@ def createEquations(minimizedOnes):
             if position[1] not in rowlist:
                 rowlist.append(position[1])
 
-        print(collist)
-        print(rowlist)
         if len(collist) == 2:
             if 0 in collist and 1 in collist and 2 not in collist and 3 not in collist:
                 equation += "a'"
@@ -261,31 +273,28 @@ def createEquations(minimizedOnes):
 
     return equations
 
-if __name__ == "__main__":
-    K_Map.pygame.init()
-    table = [1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,0]
-    # table = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    # table = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    tables = [table]
-    KMAP = makeKMAP(tables)
-    foo = solveKMAP(KMAP[0])
-    foo = list(foo)
-    trees = makeOnesTree(foo)
-    someset = set()
-    for tree in trees:
-        lit = []
-        levelOrder(tree, lit, (tree.pos, ))
-        # print(lit)
-        someset = someset.union(set(lit))
-    the_list = list(someset)
-    the_list.sort(key = len, reverse = True)
-    print(the_list)
-    the_list = (list(map(ispossible, the_list)))
-    print(the_list)
 
-    ok = minimize(foo,the_list)
-    print(createEquations(ok))
-    print(ok)
-    # print(overlap(ok))
-
-    # print(ispossible(((0, 3), (0, 0), (3, 0), (3, 3))))
+# if __name__ == "__main__":
+#     K_Map.pygame.init()
+#     table = [1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,0]
+#     # table = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+#     # table = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+#     tables = [table]
+#     KMAP = makeKMAP(tables)
+#     foo = findOnes(KMAP[0])
+#     foo = list(foo)
+#     trees = makeOnesTree(foo)
+#     someset = set()
+#     for tree in trees:
+#         lit = []
+#         levelOrder(tree, lit, (tree.pos, ))
+#
+#         someset = someset.union(set(lit))
+#     the_list = list(someset)
+#     the_list.sort(key = len, reverse = True)
+#
+#     the_list = (list(map(ispossible, the_list)))
+#
+#
+#     ok = minimize(foo,the_list)
+#     print(ok)
